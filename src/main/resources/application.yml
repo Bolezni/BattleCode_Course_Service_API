@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/battle_code
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: admin
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+logging:
+  level:
+    org.springframework.security: debug
+    org.springframework.web: debug
+server:
+  port: 8083
+
+grpc:
+  client:
+    auth-service:
+      address: static://localhost:8080
+      negotiation-type: plaintext

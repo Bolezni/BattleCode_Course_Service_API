@@ -6,11 +6,11 @@ import com.bolezni.battlecode_course_service_api.model.CourseEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {TaskMapper.class})
+@Mapper(componentModel = "spring", uses = {TaskMapper.class, SubscriptionMapper.class})
 public interface CourseMapper {
 
     CourseInfo mapToCourseInfo(CourseEntity courseEntity);
 
-    @Mapping(target = "tasks", source = "taskIds", ignore = true)
+    @Mapping(target = "tasks", ignore = true)
     CourseEntity mapToCourseEntity(CourseCreateDto createDto);
 }

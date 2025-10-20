@@ -1,22 +1,28 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/battle_code
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/battle_code}
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: admin
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:admin}
   jpa:
     show-sql: true
     hibernate:
       ddl-auto: update
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
 logging:
   level:
     org.springframework.security: debug
     org.springframework.web: debug
+    org.springframework.kafka: DEBUG
+    com.bolezni.battlecode_course_service_api.service.KafkaEventService: INFO
 server:
   port: 8083
 
 grpc:
   client:
     auth-service:
-      address: static://localhost:8080
+      address: ${GRPC_AUTH_SERVICE_ADDRESS:static://localhost:9090}
+      enable-keep-alive: true
       negotiation-type: plaintext

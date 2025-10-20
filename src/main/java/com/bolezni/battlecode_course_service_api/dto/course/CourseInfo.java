@@ -1,11 +1,13 @@
 package com.bolezni.battlecode_course_service_api.dto.course;
 
+import com.bolezni.battlecode_course_service_api.dto.subscriber.SubscriptionInfo;
 import com.bolezni.battlecode_course_service_api.dto.task.TaskInfo;
-import com.bolezni.battlecode_course_service_api.model.SubscriptionEntity;
+import lombok.Builder;
 
 import java.time.LocalDateTime;
 import java.util.Set;
 
+@Builder
 public record CourseInfo(
         Long id,
         String title,
@@ -14,9 +16,9 @@ public record CourseInfo(
         String level,
         Double price,
         Boolean isPublished,
-        Long authorId,
+        String authorId,
         Set<TaskInfo> tasks,
-        Set<SubscriptionEntity> subscriptions,
+        Set<SubscriptionInfo> subscriptions,
         Integer studentCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

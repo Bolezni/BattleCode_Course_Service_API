@@ -9,5 +9,6 @@ import org.mapstruct.Mapping;
 public interface SubscriptionMapper {
 
     @Mapping(target = "courseInfo", source = "course.id")
+    @Mapping(target = "subscriptionId", source = "id")
     SubscriptionInfo toSubscriber(SubscriptionEntity subscriber);
 }

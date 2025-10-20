@@ -2,6 +2,7 @@ package com.bolezni.battlecode_course_service_api.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -49,7 +50,8 @@ public class TaskEntity extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String content; // HTML/content
 
-    @ManyToMany(mappedBy = "tasks")
+    @ManyToMany(mappedBy = "tasks",fetch = FetchType.LAZY)
+    @BatchSize(size = 20)
     @Builder.Default
     private Set<CourseEntity> courses = new HashSet<>();
 }

@@ -2,6 +2,7 @@ package com.bolezni.battlecode_course_service_api.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -43,18 +44,20 @@ public class CourseEntity extends BaseEntity {
     @Column(name = "author_id", nullable = false)
     private String authorId;
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @JoinTable(
             name = "course_tasks",
             joinColumns = @JoinColumn(name = "course_id"),
             inverseJoinColumns = @JoinColumn(name = "task_id")
     )
     @Builder.Default
+    @BatchSize(size = 20)
     @OrderBy("orderIndex ASC")
     private Set<TaskEntity> tasks = new HashSet<>();
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
+    @BatchSize(size = 20)
     private Set<SubscriptionEntity> subscriptions = new HashSet<>();
 
     @Column(name = "student_count")

@@ -18,7 +18,6 @@ import java.util.Arrays;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@Lazy
 public class JwtAuthInterceptor implements HandlerInterceptor {
 
     @Lazy
@@ -29,46 +28,79 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
                              HttpServletResponse response,
                              Object handler) throws Exception {
 
+        log.info("=== JWT AUTH INTERCEPTOR START ===");
+        log.info("Request URI: {}", request.getRequestURI());
+        log.info("Handler type: {}", handler.getClass().getName());
+
         if (!(handler instanceof HandlerMethod handlerMethod)) {
+            log.info("Not a HandlerMethod, skipping authentication");
             return true;
         }
 
+        log.info("Method: {}", handlerMethod.getMethod().getName());
+
+        // Проверяем аннотацию на методе
         JwtAuth jwtAuth = handlerMethod.getMethodAnnotation(JwtAuth.class);
+        log.info("JwtAuth annotation found on method: {}", jwtAuth != null);
+
+        // Если на методе нет, проверяем на классе
+        if (jwtAuth == null) {
+            jwtAuth = handlerMethod.getBeanType().getAnnotation(JwtAuth.class);
+            log.info("JwtAuth annotation found on class: {}", jwtAuth != null);
+        }
 
         if (jwtAuth == null) {
+            log.info("No JwtAuth annotation found, skipping authentication");
             return true;
         }
 
+        log.info("JwtAuth configuration - required: {}, roles: {}",
+                jwtAuth.required(), Arrays.toString(jwtAuth.roles()));
+
         String token = extractToken(request);
+        log.info("Token extracted: {}", token != null ? "YES" : "NO");
 
         if (token == null && jwtAuth.required()) {
+            log.warn("❌ Token required but not provided");
             response.sendError(HttpStatus.UNAUTHORIZED.value(), "Token required");
             return false;
         }
 
         if (token != null) {
             try {
-                if (!authClientService.validateToken(token)) {
+                log.info("🔐 Starting token validation...");
+                boolean isValid = authClientService.validateToken(token);
+                log.info("✅ Token validation result: {}", isValid);
+
+                if (!isValid) {
+                    log.warn("❌ Token validation failed");
                     response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid token");
                     return false;
                 }
 
                 UserInfo userInfo = authClientService.getUserInfo(token);
+                log.info("✅ User authenticated: {} (ID: {})", userInfo.username(), userInfo.userId());
+                log.info("✅ User roles: {}", userInfo.roles());
 
                 if (!hasRequiredRoles(userInfo, jwtAuth.roles())) {
+                    log.warn("❌ User {} has insufficient roles. Has: {}, Required: {}",
+                            userInfo.username(), userInfo.roles(), Arrays.toString(jwtAuth.roles()));
                     response.sendError(HttpStatus.FORBIDDEN.value(), "Insufficient permissions");
                     return false;
                 }
 
                 request.setAttribute("userInfo", userInfo);
+                log.info("✅ UserInfo successfully set in request attributes");
 
             } catch (Exception e) {
+                log.error("❌ Authentication service error", e);
                 response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value(),
                         "Authentication service error: " + e.getMessage());
                 return false;
             }
         }
 
+        log.info("=== JWT AUTH INTERCEPTOR END - SUCCESS ===");
         return true;
     }
 

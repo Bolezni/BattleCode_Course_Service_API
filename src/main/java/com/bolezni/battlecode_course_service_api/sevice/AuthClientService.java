@@ -21,6 +21,7 @@ public class AuthClientService {
     @GrpcClient("auth-service")
     private AuthServiceGrpc.AuthServiceBlockingStub authStub;
 
+
     public boolean validateToken(String token) {
         try {
             log.debug("Validating token via gRPC");

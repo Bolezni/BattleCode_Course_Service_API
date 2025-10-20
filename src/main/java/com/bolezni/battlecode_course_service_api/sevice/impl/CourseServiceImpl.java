@@ -1,6 +1,5 @@
 package com.bolezni.battlecode_course_service_api.sevice.impl;
 
-import com.bolezni.battlecode_course_service_api.dto.course.CourseCreateDto;
 import com.bolezni.battlecode_course_service_api.dto.course.CourseInfo;
 import com.bolezni.battlecode_course_service_api.dto.course.CourseUpdate;
 import com.bolezni.battlecode_course_service_api.mapper.CourseMapper;
@@ -8,18 +7,23 @@ import com.bolezni.battlecode_course_service_api.model.CourseEntity;
 import com.bolezni.battlecode_course_service_api.model.CourseLevel;
 import com.bolezni.battlecode_course_service_api.model.TaskEntity;
 import com.bolezni.battlecode_course_service_api.repository.CourseRepository;
-import com.bolezni.battlecode_course_service_api.sevice.AuthClientService;
 import com.bolezni.battlecode_course_service_api.sevice.CourseService;
 import com.bolezni.battlecode_course_service_api.sevice.TaskService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -32,40 +36,35 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional
-    public CourseInfo createCourse(CourseCreateDto courseCreateDto, String userId) {
-        if (courseCreateDto == null) {
-            log.error("CourseCreateDto is null");
-            throw new IllegalArgumentException("Course data cannot be null");
-        }
-
-        CourseEntity course = courseMapper.mapToCourseEntity(courseCreateDto);
-        if (course == null) {
-            log.error("Failed to map CourseCreateDto to entity");
-            throw new IllegalArgumentException("Failed to create course entity");
-        }
-
-        if(userId.isEmpty()){
-            log.error("Author cant be empty");
-            throw new IllegalArgumentException("Author cant be empty");
-        }
-        course.setAuthorId(userId);
-
-        if (courseCreateDto.taskIds() != null && !courseCreateDto.taskIds().isEmpty()) {
-            Set<TaskEntity> tasks = taskService.getTasksByIds(courseCreateDto.taskIds());
-            course.setTasks(tasks);
-        } else {
-            course.setTasks(new HashSet<>());
-        }
-
-        CourseEntity saved = courseRepository.save(course);
-        log.info("Course created successfully with ID: {}", saved.getId());
-
-        return courseMapper.mapToCourseInfo(saved);
+    public CourseEntity save(CourseEntity courseEntity) {
+        return courseRepository.save(courseEntity);
     }
 
     @Override
-    public CourseInfo getCourse(Long id) {
-        return courseMapper.mapToCourseInfo(getCourseById(id));
+    public CourseEntity getCourseEntity(Long id) {
+        return courseRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.error("Course not found");
+                    return new IllegalArgumentException("Course with id " + id + " not found");
+                });
+    }
+
+    @Override
+    public CourseInfo getCourse(Long id, boolean withTasks) {
+        if(withTasks) {
+           return courseMapper.mapToCourseInfo(getCourseEntityWithTasks(id));
+        }else {
+            return courseMapper.mapToCourseInfo(getCourseEntity(id));
+        }
+    }
+
+    @Override
+    public CourseEntity getCourseEntityWithTasks(Long id) {
+        return courseRepository.findByIdWithTasks(id)
+                .orElseThrow(() -> {
+                    log.error("Course not found: {}", id);
+                    return new IllegalArgumentException("Course with id " + id + " not found");
+                });
     }
 
     @Override
@@ -76,7 +75,7 @@ public class CourseServiceImpl implements CourseService {
             throw new IllegalArgumentException("Course ID cannot be null");
         }
 
-        CourseEntity course = getCourseById(id);
+        CourseEntity course = getCourseEntity(id);
 
         if (!course.getAuthorId().equals(authorId)) {
             log.warn("User {} attempted to delete course {} authored by {}",
@@ -96,7 +95,7 @@ public class CourseServiceImpl implements CourseService {
             throw new IllegalArgumentException("Bad request");
         }
 
-        CourseEntity course = getCourseById(id);
+        CourseEntity course = getCourseEntity(id);
 
         if (!course.getAuthorId().equals(userId)) {
             log.warn("User {} attempted to update course {} authored by {}",
@@ -111,6 +110,49 @@ public class CourseServiceImpl implements CourseService {
         log.info("Course with ID {} updated by user {} successfully", id, userId);
 
         return courseMapper.mapToCourseInfo(updatedCourse);
+    }
+
+    @Override
+    public Set<CourseEntity> getAllCoursesByCoursesId(Set<Long> ids) {
+        return courseRepository.findAllByIdIn(ids);
+    }
+
+    @Override
+    @Transactional
+    public void addTaskToCourses(TaskEntity task, Set<Long> courseIds) {
+        if (courseIds != null && !courseIds.isEmpty()) {
+            Set<CourseEntity> courses = getAllCoursesByCoursesId(courseIds);
+            for (CourseEntity course : courses) {
+                course.getTasks().add(task);
+            }
+            courseRepository.saveAll(courses);
+        }
+    }
+
+    @Override
+    public Page<CourseInfo> getAllCourses(Pageable pageable) {
+
+        Page<CourseEntity> page = courseRepository.findAll(pageable);
+
+        List<Long> courseIds = page.getContent().stream()
+                .map(CourseEntity::getId)
+                .toList();
+
+        if(courseIds.isEmpty()){
+            return Page.empty(pageable);
+        }
+
+        List<CourseEntity> courseWithDetails = courseRepository.findByIdInWithDetails(courseIds);
+
+        Map<Long, CourseEntity> courseMap = courseWithDetails.stream()
+                .collect(Collectors.toMap(CourseEntity::getId, Function.identity()));
+
+        List<CourseInfo> courseInfos = page.getContent().stream()
+                .map(course -> courseMap.getOrDefault(course.getId(), course))
+                .map(courseMapper::mapToCourseInfo)
+                .toList();
+
+        return new PageImpl<>(courseInfos, pageable, page.getTotalPages());
     }
 
     private void updateBasicCourseFields(CourseEntity course, CourseUpdate updateDto) {
@@ -166,11 +208,4 @@ public class CourseServiceImpl implements CourseService {
         course.setTasks(currentTasks);
     }
 
-    private CourseEntity getCourseById(Long id) {
-        return courseRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Course not found");
-                   return new IllegalArgumentException("Course with id " + id + " not found");
-                });
-    }
 }

@@ -104,7 +104,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         SubscriptionEntity saved = subscriptionRepository.save(subscription);
 
 
-        kafkaEventPublisher.sendSubscriptionUpdated(saved.getUserId(), saved.getCourse().getId());
+        kafkaEventPublisher.sendSubscriptionUpdated(saved.getUserId(), saved.getCourse().getId(), saved.getProgress());
 
         log.debug("Subscription progress updated - User: {}, Course: {}, Progress: {}",
                 userId, courseId, progress);

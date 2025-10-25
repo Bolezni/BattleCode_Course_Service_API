@@ -28,5 +28,7 @@ public interface TaskService {
     void saveAll(Set<TaskEntity> tasks);
 
     Set<TaskEntity> getTasksByIdsWithCourses(Set<Long> ids);
+
+    TaskEntity getById(Long id);
 }
 

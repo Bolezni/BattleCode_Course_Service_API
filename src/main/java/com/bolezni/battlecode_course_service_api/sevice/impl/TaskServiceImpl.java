@@ -26,6 +26,14 @@ public class TaskServiceImpl implements TaskService {
     TaskRepository taskRepository;
     TaskMapper taskMapper;
 
+
+
+    @Override
+    public TaskEntity getById(Long id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+    }
+
     @Override
     @Transactional
     public void saveAll(Set<TaskEntity> tasks) {
@@ -88,7 +96,20 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskInfo getNextTask(Long courseId, Long currentTaskId) {
-        return null;
+        if (courseId == null) {
+            log.error("course_id is required");
+            throw new IllegalArgumentException("course_id is required");
+        }
+
+        if (currentTaskId == null) {
+            return taskRepository.findFirstTaskByCourseId(courseId)
+                    .map(taskMapper::mapToTaskInfo)
+                    .orElse(null);
+        }
+
+        return taskRepository.findNextTaskByCourseIdAndCurrentTaskId(courseId, currentTaskId)
+                .map(taskMapper::mapToTaskInfo)
+                .orElse(null);
     }
 
     @Override
@@ -126,7 +147,7 @@ public class TaskServiceImpl implements TaskService {
             throw new RuntimeException("Task not found with id: " + taskId);
         }
 
-        taskRepository.deleteById(taskId);
+        taskRepository.deleteTaskWithRelations(taskId);
         log.info("Task deleted successfully with id: {}", taskId);
     }
 }

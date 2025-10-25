@@ -9,6 +9,7 @@ import com.bolezni.battlecode_course_service_api.sevice.TaskService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,6 +20,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Set;
 
 @JwtAuth
@@ -52,23 +54,29 @@ public class TaskController {
     }
 
     @GetMapping("/tasks")
-    public ResponseEntity<Set<TaskInfo>> getAllTasksById(@NotNull @RequestBody Set<Long> taskIds) {
-        Set<TaskInfo> dto = taskService.getTasksInfoByIds(taskIds);
+    public ResponseEntity<Set<TaskInfo>> getAllTasksById(@NotNull @RequestBody Map<String, Set<Long>> taskIds) {
+        Set<TaskInfo> dto = taskService.getTasksInfoByIds(taskIds.get("taskIds"));
         return ResponseEntity.ok(dto);
     }
 
     @GetMapping("/set")
-    public ResponseEntity<Set<TaskInfo>> getTasksPage(@RequestParam(name = "course_id") Long courseId) {
+    public ResponseEntity<Set<TaskInfo>> getTasksPage(@NotNull @Positive @RequestParam(name = "course_id") Long courseId) {
         Set<TaskInfo> dto = taskService.getCourseTasks(courseId);
         return ResponseEntity.ok(dto);
     }
 
     @GetMapping("/page")
-    public ResponseEntity<Page<TaskInfo>> getTasksPage(@RequestParam(name = "course_id") Long courseId,
+    public ResponseEntity<Page<TaskInfo>> getTasksPage(@NotNull @Positive @RequestParam(name = "course_id") Long courseId,
                                                        @PageableDefault(size = 20, sort = "orderIndex", direction = Sort.Direction.ASC) Pageable pageable) {
         Page<TaskInfo> dto = taskService.getCourseTasks(courseId, pageable);
         return ResponseEntity.ok(dto);
     }
 
+    @GetMapping("/next")
+    public ResponseEntity<TaskInfo> getNextTask(@NotNull @Positive @RequestParam("course_id") Long courseId,
+                                                @RequestParam("current_task_id") Long currentTaskId) {
+        TaskInfo dto = taskService.getNextTask(courseId, currentTaskId);
+        return ResponseEntity.ok(dto);
+    }
 
 }

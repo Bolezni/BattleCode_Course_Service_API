@@ -52,8 +52,8 @@ public class KafkaEventPublisher {
         sendSubscriptionEvent(event);
     }
 
-    public void sendSubscriptionUpdated(String userId, Long courseId) {
-        SubscriptionEvent event = SubscriptionEvent.updatelSubscriptionEvent(userId, courseId);
+    public void sendSubscriptionUpdated(String userId, Long courseId, Double progress) {
+        SubscriptionEvent event = SubscriptionEvent.updatelSubscriptionEvent(userId, courseId, progress);
         sendSubscriptionEvent(event);
     }
 }

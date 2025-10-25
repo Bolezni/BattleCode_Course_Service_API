@@ -50,8 +50,12 @@ public class TaskEntity extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String content; // HTML/content
 
-    @ManyToMany(mappedBy = "tasks",fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "tasks",fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @BatchSize(size = 20)
     @Builder.Default
     private Set<CourseEntity> courses = new HashSet<>();
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private Set<TaskSubmissionEntity> submissions = new HashSet<>();
 }
